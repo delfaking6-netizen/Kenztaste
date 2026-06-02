@@ -557,6 +557,16 @@ async function sendOrder() {
   msg += `━━━━━━━━━━━━━━━━\n📦 Mode : ${modeText}\n`;
   if (deliveryFee > 0) msg += `🛵 Livraison : ${deliveryFee.toLocaleString()} FCFA\n`;
   msg += `💰 *Total : ${total.toLocaleString()} FCFA*\n\n_Envoyé via KenzTaste_`;
+  const waUrl = `https://wa.me/${S.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
+
+  // iOS fix : ouvrir WhatsApp AVANT les await (doit être synchrone au tap)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    window.location.href = waUrl;
+  } else {
+    window.open(waUrl, '_blank');
+  }
+
   const order = { id: Date.now(), time: new Date().toLocaleString('fr'), items: [...cart], delivery: selectedDelivery, total };
   try {
     await sb.from('orders').insert({ id:order.id, time:order.time, items:order.items, delivery:order.delivery, total:order.total });
@@ -565,7 +575,6 @@ async function sendOrder() {
       if (p) { await sb.from('products').update({ sales: (p.sales||0) + item.qty }).eq('id', p.id); }
     }
   } catch(e) { console.warn('Erreur sauvegarde commande', e); }
-  window.open(`https://wa.me/${S.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
   cart = []; updateCartBadge(); closeCart();
   showToast('🎉 Commande envoyée !');
 }
